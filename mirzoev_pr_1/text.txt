@@ -1,0 +1,263 @@
+Система управления библиотечным архивом и редких книг
+
+
+// ==========================================
+// КОД ПРОГРАММЫ
+// ==========================================
+
+using System;
+using System.Collections.Generic;
+
+public class Admin
+{
+    public string Name { get; set; }
+
+    public Admin(string name)
+    {
+        Name = name;
+    }
+
+    // Метод для добавления книги в библиотеку
+    public void AddBookToLibrary(Library library, Book book)
+    {
+        library.AddBook(book);
+        Console.WriteLine($"Админ {Name} добавил книгу: {book.Title}");
+    }
+
+    // Метод для выдачи книги читателю
+    public void IssueBook(Library library, Book book, Reader reader)
+    {
+        if (book.CheckAvailability())
+        {
+            library.IssueBook(book, reader);
+            Console.WriteLine($"Админ {Name} выдал книгу: {book.Title} читателю {reader.Name}");
+        }
+        else
+        {
+            Console.WriteLine("Книга недоступна для выдачи.");
+        }
+    }
+}
+
+public class Client
+{
+    public string Name { get; set; }
+
+    public Client(string name)
+    {
+        Name = name;
+    }
+
+    // Метод для запроса книги
+    public void RequestBook(Library library, Book book)
+    {
+        if (book.CheckAvailability())
+        {
+            Console.WriteLine($"{Name} запросил книгу: {book.Title}");
+        }
+        else
+        {
+            Console.WriteLine($"Книга '{book.Title}' недоступна.");
+        }
+    }
+}
+
+public class Library
+{
+    public string Name { get; set; }
+    public List<Book> Books { get; set; }
+
+    public Library(string name)
+    {
+        Name = name;
+        Books = new List<Book>();
+    }
+
+    // Метод для добавления книги в библиотеку
+    public void AddBook(Book book)
+    {
+        Books.Add(book);
+    }
+
+    // Метод для удаления книги из библиотеки
+    public void RemoveBook(Book book)
+    {
+        Books.Remove(book);
+    }
+
+    // Метод для выдачи книги читателю
+    public void IssueBook(Book book, Reader reader)
+    {
+        book.TakenCount++;  // Увеличиваем количество взятых книг
+        book.AvailableCount--; // Уменьшаем количество доступных книг
+        reader.BorrowedBooks.Add(book);
+    }
+
+    // Метод для возврата книги читателем
+    public void ReturnBook(Book book, Reader reader)
+    {
+        book.TakenCount--;  // Уменьшаем количество взятых книг
+        book.AvailableCount++; // Увеличиваем количество доступных книг
+        reader.BorrowedBooks.Remove(book);
+    }
+
+    // Метод для отображения всех книг
+    public void ListBooks()
+    {
+        if (Books.Count == 0)
+        {
+            Console.WriteLine("В библиотеке нет книг.");
+        }
+        else
+        {
+            foreach (var book in Books)
+            {
+                book.GetDetails();
+            }
+        }
+    }
+}
+
+public abstract class Book
+{
+    public string Title { get; set; }
+    public string Author { get; set; }
+    public int Year { get; set; }
+    public string Genre { get; set; }
+    public int AvailableCount { get; set; }  // Количество доступных книг
+    public int TakenCount { get; set; }     // Количество взятых книг
+
+    public abstract void GetDetails();
+    public abstract bool CheckAvailability();
+}
+
+public class RareBook : Book
+{
+    public override void GetDetails()
+    {
+        Console.WriteLine($"Название: {Title}, Автор: {Author}, Год: {Year}, Жанр: {Genre}");
+        Console.WriteLine($"Доступно: {AvailableCount}, Взято: {TakenCount}");
+    }
+
+    public override bool CheckAvailability()
+    {
+        return AvailableCount > TakenCount;
+    }
+}
+
+public class Reader
+{
+    public string Name { get; set; }
+    public List<Book> BorrowedBooks { get; set; } = new List<Book>();
+
+    public Reader(string name)
+    {
+        Name = name;
+    }
+
+    // Метод для возврата книги
+    public void ReturnBook(Library library, Book book)
+    {
+        library.ReturnBook(book, this);
+        Console.WriteLine($"{Name} вернул книгу: {book.Title}");
+    }
+}
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        Library library = new Library("Национальная библиотека");
+        Admin admin = new Admin("Иван Иванов");
+        Client client = new Client("Петр Петров");
+
+        // Добавление книги в библиотеку
+        Book newBook = new RareBook { Title = "Книга по программированию", Author = "Автор 1", Year = 2023, Genre = "Образование", AvailableCount = 5, TakenCount = 0 };
+        admin.AddBookToLibrary(library, newBook);
+
+        // Просмотр всех книг в библиотеке
+        Console.WriteLine("Список всех книг в библиотеке:");
+        library.ListBooks();
+
+        // Клиент запрашивает книгу
+        client.RequestBook(library, newBook);
+
+        // Админ выдает книгу клиенту
+        admin.IssueBook(library, newBook, client);
+
+        // Просмотр всех книг после выдачи
+        Console.WriteLine("\nСписок книг после выдачи:");
+        library.ListBooks();
+
+        // Клиент возвращает книгу
+        client.ReturnBook(library, newBook);
+
+        // Просмотр всех книг после возврата
+        Console.WriteLine("\nСписок книг после возврата:");
+        library.ListBooks();
+    }
+}
+
+
+// ==========================================
+// ДИАГРАММЫ
+// ==========================================
+
+// Диаграмма классов (Class Diagram)
+
+// Классы:
+// 1. Admin — администратор, который может добавлять книги и выдавать их.
+// 2. Client — читатель, который может только заказывать книги.
+// 3. Library — библиотека, которая хранит книги и управляет их состоянием.
+// 4. Book — абстрактный класс для книг.
+// 5. RareBook — редкая книга, наследуемая от класса Book.
+// 6. Reader — читатель, который может забирать книги.
+
+// Взаимосвязи:
+// - Admin и Client взаимодействуют с Library для управления книгами.
+// - Reader взаимодействует с Library для получения и возврата книг.
+// - Book и RareBook — это основные классы для хранения информации о книгах.
+
+// Диаграмма классов:
+
+/*
+  +------------------+            +-------------------+
+  |    Admin        |            |     Client        |
+  +------------------+            +-------------------+
+           |                             |
+  +--------+--------+            +-------+-----------+
+  |      Library    |<---------->|      Reader       |
+  +-----------------+            +-------------------+
+  | - Books: List<Book> |
+  +-----------------+            +-------------------+
+  | + AddBook()     |            | + ReturnBook()    |
+  | + IssueBook()   |            +-------------------+
+  | + ListBooks()   |
+  +-----------------+              ^
+          ^                         |
+          |                         |
+  +-------------------+      +-------------------+
+  |      Book         |<---->|    RareBook       |
+  +-------------------+      +-------------------+
+  | - Title: string   |      |  (наследует атрибуты Book) |
+  | - Author: string  |      +-------------------+
+  | - Year: int       |
+  | - Genre: string   |
+  | - AvailableCount: |
+  |   int             |
+  | - TakenCount: int |
+  +-------------------+
+*/
+
+// Диаграмма вариантов использования (Use Case Diagram)
+
+/*
+  +------------------+            +-------------------+
+  |    Администратор |            |     Клиент        |
+  +------------------+            +-------------------+
+           |                             |
+  +--------+--------+            +-------+-----------+
+  |   Добавить книгу|            |   Запросить книгу |
+  |   Выдать книгу  |            |   Забрать книгу   |
+  +------------------+            +-------------------+
+*/
